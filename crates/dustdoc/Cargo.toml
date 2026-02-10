@@ -1,0 +1,21 @@
+[package]
+name = "dustdoc"
+version = "0.1.0"
+edition = "2021"
+
+#! This crate implements a documentation generator for the Dust Programming
+#! Language (DPL).  It reads Dust source files containing documentation
+#! comments and produces human‑readable documentation in Markdown or HTML.
+#
+# The philosophy behind `dustdoc` follows the literate programming
+# approach pioneered by Donald Knuth: a single source should be
+# understandable by humans while still compiling for machines.  See the
+# `README.md` for more details and citations.  The license is the same
+# permissive DOSL used throughout the Dust toolchain.
+
+description = "Documentation generator for the Dust Programming Language (DPL)"
+license = "DOSL-1.0"
+readme = "README.md"
+
+[dependencies]
+pulldown-cmark = "0.9"
