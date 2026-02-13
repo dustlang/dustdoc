@@ -1,6 +1,6 @@
 [package]
 name = "dustdoc"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 #! This crate implements a documentation generator for the Dust Programming
@@ -8,7 +8,7 @@ edition = "2021"
 #! comments and produces human‑readable documentation in Markdown or HTML.
 #
 # The philosophy behind `dustdoc` follows the literate programming
-# approach pioneered by Donald Knuth: a single source should be
+# approach pioneered by Donald Knuth: a single source should be
 # understandable by humans while still compiling for machines.  See the
 # `README.md` for more details and citations.  The license is the same
 # permissive DOSL used throughout the Dust toolchain.
