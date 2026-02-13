@@ -34,6 +34,8 @@ pub struct DocItem {
     pub signature: String,
     /// Documentation lines associated with the item.
     pub docs: Vec<String>,
+    /// Whether this item is in an unsafe block (v0.2).
+    pub is_unsafe: bool,
 }
 
 /// Parse a Dust source file and return its documentation module.
@@ -62,8 +64,8 @@ pub fn parse_str(src: &str) -> DocModule {
     let mut in_block_doc: Option<(bool, Vec<String>)> = None;
 
     // helper closure to flush pending docs into an item
-    let mut flush_item = |signature: &str| {
-        if current_docs.is_empty() {
+    let mut flush_item = |signature: &str, is_unsafe: bool, docs: &mut Vec<String>| {
+        if docs.is_empty() {
             return;
         }
         // Determine kind and name from signature
@@ -71,19 +73,21 @@ pub fn parse_str(src: &str) -> DocModule {
         let mut parts = trimmed.split_whitespace();
         let kind = parts.next().unwrap_or("").to_string();
         let name_part = parts.next().unwrap_or("");
-        // Remove trailing punctuation from name (e.g. `{`, `(`) if present
+        // Remove trailing punctuation from name (e.g. `{`, `)`, `(`) if present
         let name = name_part
             .trim_end_matches('{')
+            .trim_end_matches(')')
             .trim_end_matches('(')
             .to_string();
         let item = DocItem {
             kind,
             name,
             signature: trimmed.to_string(),
-            docs: current_docs.clone(),
+            docs: docs.clone(),
+            is_unsafe,
         };
         items.push(item);
-        current_docs.clear();
+        docs.clear();
     };
 
     // iterate over lines to collect docs and signatures
@@ -97,9 +101,11 @@ pub fn parse_str(src: &str) -> DocModule {
                 let before = &trimmed[..end_idx];
                 // strip leading '*' characters commonly used in block comments
                 let cleaned = before.trim_start_matches('*').trim();
-                accum.push(cleaned.to_string());
+                if !cleaned.is_empty() {
+                    accum.push(cleaned.to_string());
+                }
                 // flush into module_docs or current_docs based on is_inner
-                if *is_inner {
+                if is_inner {
                     module_docs.extend(accum.drain(..));
                 } else {
                     current_docs.extend(accum.drain(..));
@@ -108,9 +114,7 @@ pub fn parse_str(src: &str) -> DocModule {
                 // remainder after */ is ignored by comment parser
             } else {
                 // line inside block doc comment
-                let cleaned = trimmed
-                    .trim_start_matches('*')
-                    .trim();
+                let cleaned = trimmed.trim_start_matches('*').trim();
                 accum.push(cleaned.to_string());
             }
             continue;
@@ -120,7 +124,6 @@ pub fn parse_str(src: &str) -> DocModule {
         if trimmed.starts_with("/*!") {
             // inner doc for module
             let content = trimmed.trim_start_matches("/*!").trim();
-            let mut accum = Vec::new();
             if let Some(end_idx) = content.find("*/") {
                 // one-line block
                 let before = &content[..end_idx];
@@ -168,10 +171,56 @@ pub fn parse_str(src: &str) -> DocModule {
             continue;
         }
         // at this point we have code; check if we have pending docs
-        let keywords = ["forge", "shape", "process", "bind", "effect"];
+        // v0.2 expanded keywords
+        let keywords = [
+            "forge",
+            "shape",
+            "process",
+            "bind",
+            "effect",
+            "module",
+            "type",
+            "trait",
+            "enum",
+            "const",
+            "K",
+            "Q",
+            "Φ",
+            // v0.2 K-regime keywords
+            "alloc",
+            "free",
+            "spawn",
+            "join",
+            "mutex_new",
+            "mutex_lock",
+            "mutex_unlock",
+            "open",
+            "read",
+            "write",
+            "close",
+            "io_read",
+            "io_write",
+            "mmio_read",
+            "mmio_write",
+            "unsafe",
+        ];
         let first_word = trimmed.split_whitespace().next().unwrap_or("");
-        if keywords.contains(&first_word) {
-            flush_item(trimmed);
+
+        // Check for unsafe blocks (v0.2)
+        let is_unsafe = trimmed.starts_with("unsafe");
+
+        if keywords.contains(&first_word) || is_unsafe {
+            flush_item(trimmed, is_unsafe, &mut current_docs);
+            continue;
+        }
+        // Check for type declarations with generic parameters (v0.2)
+        // Use word boundary check to avoid matching partial words like "Mem" in "Memory"
+        let type_start = trimmed.split_whitespace().next().unwrap_or("");
+        let v0_2_types = ["Thread", "Mem", "Mutex", "File", "Port", "Device", "Ptr"];
+        if v0_2_types.contains(&type_start)
+            || (type_start.starts_with("Thread") && type_start.contains('<'))
+        {
+            flush_item(trimmed, false, &mut current_docs);
             continue;
         }
         // no doc comment and not a recognised item; continue
@@ -188,7 +237,7 @@ pub fn parse_str(src: &str) -> DocModule {
 /// Generate a Markdown document from a parsed `DocModule`.
 pub fn generate_markdown(module: &DocModule, file_name: &str) -> String {
     let mut out = String::new();
-    out.push_str(&format!="# Documentation for `{}`\n\n", file_name));
+    out.push_str(&format!("# Documentation for `{}`\n\n", file_name));
     // Module docs
     if !module.module_docs.is_empty() {
         for line in &module.module_docs {
@@ -199,7 +248,11 @@ pub fn generate_markdown(module: &DocModule, file_name: &str) -> String {
     }
     // Items
     for item in &module.items {
-        out.push_str(&format!("## {} `{}`\n\n", item.kind, item.name));
+        let unsafe_badge = if item.is_unsafe { " **(unsafe)**" } else { "" };
+        out.push_str(&format!(
+            "## {} `{}`{}\n\n",
+            item.kind, item.name, unsafe_badge
+        ));
         for line in &item.docs {
             out.push_str(line);
             out.push('\n');
@@ -209,6 +262,18 @@ pub fn generate_markdown(module: &DocModule, file_name: &str) -> String {
         out.push_str(&item.signature.trim());
         out.push('\n');
         out.push_str("```\n\n");
+
+        // Add type information for v0.2 resource types
+        if item.name.starts_with("Thread<")
+            || item.name.starts_with("Mem")
+            || item.name == "Mutex"
+            || item.name == "File"
+            || item.name == "Port"
+            || item.name == "Device"
+            || item.name == "Ptr"
+        {
+            out.push_str("*Resource type (v0.2)*\n\n");
+        }
     }
     out
 }
