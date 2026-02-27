@@ -1,9 +1,14 @@
-//! Core library for the `dustdoc` documentation generator.
-//!
-//! This crate defines simple data structures and functions for extracting
-//! documentation comments from Dust source files and generating
-//! human‑readable output.  See the crate‐level README for background and
-//! motivation.
+// File: lib.rs - This file is part of the DPL Toolchain
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   Core library for the `dustdoc` documentation generator.
+//   This crate provides:
+//     - DocModule: Represents a documented module with module-level docs
+//     - DocItem: Top-level declarations (forge, shape, process) with docs
+//     - DocComment: Parsed documentation comments from source
+//     - Functions for extracting docs from Dust source files
+//     - Human-readable output generation
+//   See crate-level README for background and motivation.
 
 use std::fs::File;
 use std::io::{self, Read};

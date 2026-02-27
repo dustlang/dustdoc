@@ -1,3 +1,13 @@
+// File: doc_gen.rs - This file is part of the DPL Toolchain
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   Test suite for dustdoc documentation generation.
+//   Tests include:
+//     - Basic parsing and generation (parse_and_generate_basic)
+//     - Markdown to HTML conversion
+//     - Module documentation extraction
+//     - Forge, shape, and process documentation handling
+
 use dustdoc::{generate_markdown, markdown_to_html, parse_str};
 
 #[test]

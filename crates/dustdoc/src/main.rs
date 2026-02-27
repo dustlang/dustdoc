@@ -1,8 +1,15 @@
-//! Command‑line interface for the `dustdoc` documentation generator.
-//!
-//! This binary reads a Dust source file, extracts documentation
-//! comments, and writes out a formatted document.  By default it
-//! produces Markdown; pass `--html` to emit HTML instead.
+// File: main.rs - This file is part of the DPL Toolchain
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   Command-line interface for the `dustdoc` documentation generator.
+//   This binary:
+//     - Reads a Dust source file
+//     - Extracts documentation comments
+//     - Writes formatted documentation (Markdown or HTML)
+//   Usage: dustdoc [OPTIONS] <source> [<output>]
+//   Options:
+//     --html       Generate HTML instead of Markdown
+//     -h, --help   Print help message
 
 use std::env;
 use std::fs;
@@ -17,7 +24,9 @@ fn print_help() {
     eprintln!("    -h, --help   Print this help message.");
     eprintln!("\nArguments:");
     eprintln!("    <source>     Path to a `.dust` or `.dpaper` source file.");
-    eprintln!("    [output]     Optional output file.  If omitted, the result is printed to stdout.");
+    eprintln!(
+        "    [output]     Optional output file.  If omitted, the result is printed to stdout."
+    );
 }
 
 fn main() {
@@ -42,7 +51,11 @@ fn main() {
         return;
     }
     let source = args[0].clone();
-    let output = if args.len() > 1 { Some(args[1].clone()) } else { None };
+    let output = if args.len() > 1 {
+        Some(args[1].clone())
+    } else {
+        None
+    };
     // parse file
     let module = match parse_file(&source) {
         Ok(m) => m,
