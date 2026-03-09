@@ -1,0 +1,14 @@
+# DustDoc - DPL Documentation Generator Workspace Manifest
+
+[workspace]
+name = "dustdoc"
+version = "0.2.0"
+description = "Dust-native documentation generator profile"
+
+[sector]
+name = "dustdoc"
+path = "src"
+
+[target.x64-pc-none]
+linker = "ld"
+linker_flags = ["-nostdlib", "-static"]

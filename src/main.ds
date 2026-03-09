@@ -1,0 +1,55 @@
+// File: main.ds - This file is part of the DPL Toolchain
+// Copyright (c) 2026 Dust LLC, and Contributors
+// Description:
+//   DustDoc top-level executable profile for the currently supported Dust grammar.
+//   This build profile uses a single K main unit.
+
+K main {
+    // Profile selectors.
+    // 1 = markdown output, 2 = html output
+    let output_mode: K[Int] = 1;
+
+    // Simulated extraction pipeline state for compile-time smoke behavior.
+    let source_present: K[Int] = 1;
+    let parse_ok: K[Int] = 1;
+    let module_doc_count: K[Int] = 2;
+    let item_doc_count: K[Int] = 3;
+
+    if source_present == 0 {
+        emit "error: failed to read source";
+    } else {
+        if parse_ok == 0 {
+            emit "error: parse failed during doc extraction";
+        } else {
+            if module_doc_count == 0 {
+                emit "warning: no module docs found";
+            } else {
+                emit "info: module docs extracted";
+            }
+
+            if item_doc_count == 0 {
+                emit "warning: no item docs found";
+            } else {
+                emit "info: item docs extracted";
+            }
+
+            if output_mode == 1 {
+                emit "# Documentation for `module.ds`";
+                emit "## process `main`";
+                emit "```dpl";
+                emit "process main() { ... }";
+                emit "```";
+            } else {
+                if output_mode == 2 {
+                    emit "<h1>Documentation for module.ds</h1>";
+                    emit "<h2>process main</h2>";
+                    emit "<pre><code>process main() { ... }</code></pre>";
+                } else {
+                    emit "error: unknown output mode";
+                }
+            }
+        }
+    }
+
+    emit "dustdoc: top-level K main profile active";
+}
